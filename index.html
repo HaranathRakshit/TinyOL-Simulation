@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TinyOL: Dashboard Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .pill { display: inline-block; padding: 2px 12px; border-radius: 50px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: bold; border: 1px solid; }
+        .pill-blue { color: #3b82f6; background-color: #eff6ff; border-color: #3b82f6; }
+        .pill-red { color: #ef4444; background-color: #fef2f2; border-color: #ef4444; }
+        .pill-purple { color: #8b5cf6; background-color: #f5f3ff; border-color: #8b5cf6; }
+        .status-normal { color: #166534; } .status-warning { color: #b45309; } .status-critical { color: #b91c1c; }
+        
+        input[type="range"] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 14px; width: 14px; border-radius: 50%; background: #64748b; cursor: pointer; margin-top: -5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen p-3 md:p-4 font-sans flex items-center justify-center">
+
+    <div class="w-full max-w-[1300px] mx-auto space-y-4">
+        
+        <header class="flex flex-col xl:flex-row justify-between items-center bg-white border border-slate-200 p-3 rounded-2xl shadow-sm">
+            <div class="mb-3 xl:mb-0 text-center xl:text-left px-2">
+                <h1 class="text-xl font-black text-slate-950 tracking-tight">TinyOL Anomaly Detection</h1>
+                <p class="text-slate-500 text-[10px] font-semibold tracking-wide mt-1">MULTI-MODAL IOT NODE (ESP32-CLASS LOGIC)</p>
+            </div>
+            
+            <div class="w-full xl:w-auto bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl flex flex-wrap justify-center items-center gap-4 md:gap-6 text-center">
+                <div>
+                    <span class="text-slate-400 text-[9px] uppercase font-bold block mb-1">Latency (Lₜ)</span>
+                    <div class="text-lg font-mono font-bold text-slate-900" id="valLatency">0.35 ms</div>
+                </div>
+                <div class="border-l border-slate-200 pl-4 md:pl-6">
+                    <span class="text-slate-400 text-[9px] uppercase font-bold block mb-1">Baseline (μ)</span>
+                    <div class="text-lg font-mono font-bold text-slate-900" id="valBaseline">0.35 ms</div>
+                </div>
+                <div class="border-l border-slate-200 pl-4 md:pl-6">
+                    <span class="text-slate-400 text-[9px] uppercase font-bold block mb-1">Danger Score (Sₜ)</span>
+                    <div class="text-lg font-mono font-black text-slate-900" id="valDanger">0.00</div>
+                </div>
+                <div class="border-l border-slate-200 pl-4 md:pl-6">
+                    <span class="text-slate-400 text-[9px] uppercase font-bold block mb-1">System State</span>
+                    <div class="text-lg font-black" id="stateIndicator">NORMAL</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            
+            <div class="lg:col-span-8 bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-col min-h-[420px]">
+                <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-3">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" id="liveDot"></div>
+                        <span class="text-[10px] uppercase tracking-widest font-black text-slate-400">Live Traffic Stream</span>
+                    </div>
+                    <div class="text-right">
+                        <span id="systemStatusText" class="text-sm font-black status-normal px-3 py-1 rounded-lg bg-emerald-50">NORMAL OPERATIONS</span>
+                    </div>
+                </div>
+
+                <div class="space-y-6 flex-grow flex flex-col justify-center">
+                    <div class="h-[150px] relative w-full">
+                        <span class="pill pill-blue absolute z-10 top-0 left-0 bg-white shadow-sm">Raw Latency (ms)</span>
+                        <canvas id="latencyChart" class="mt-2"></canvas>
+                    </div>
+                    
+                    <div class="h-[150px] pt-4 relative w-full">
+                        <div class="absolute top-4 right-0 z-10 flex gap-2">
+                            <span class="pill pill-purple bg-white shadow-sm" id="valThresholdPill">Threshold: 15.0</span>
+                            <span class="pill border-slate-300 text-slate-500 bg-white shadow-sm" id="valCapPill">Cap: 30.0</span>
+                        </div>
+                        <span class="pill pill-red absolute z-10 top-4 left-0 bg-white shadow-sm">CUSUM Danger Score</span>
+                        <canvas id="dangerChart" class="mt-2"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-4 space-y-4 flex flex-col">
+                
+                <div class="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex-grow">
+                    <h3 class="text-[10px] uppercase tracking-widest font-black text-slate-400 mb-4 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        Algorithm Tuning
+                    </h3>
+                    
+                    <div class="space-y-3">
+                        <div class="space-y-1 p-2 bg-slate-50 rounded-xl border border-slate-100">
+                            <div class="flex justify-between items-center">
+                                <label class="text-[10px] font-bold text-slate-700">Learning Rate (α)</label>
+                                <span class="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded" id="valAlpha">0.10</span>
+                            </div>
+                            <input type="range" id="paramAlpha" min="0.01" max="0.5" step="0.01" value="0.10">
+                        </div>
+
+                        <div class="space-y-1 p-2 bg-slate-50 rounded-xl border border-slate-100">
+                            <div class="flex justify-between items-center">
+                                <label class="text-[10px] font-bold text-slate-700">Tolerance Slack (k)</label>
+                                <span class="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded" id="valK">0.5</span>
+                            </div>
+                            <input type="range" id="paramK" min="0" max="5" step="0.1" value="0.5">
+                        </div>
+
+                        <div class="space-y-1 p-2 bg-slate-50 rounded-xl border border-slate-100">
+                            <div class="flex justify-between items-center">
+                                <label class="text-[10px] font-bold text-slate-700">Alert Threshold (h)</label>
+                                <span class="text-xs font-mono font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded" id="valH">15</span>
+                            </div>
+                            <input type="range" id="paramH" min="5" max="50" step="1" value="15">
+                        </div>
+
+                        <div class="space-y-1 p-2 bg-slate-50 rounded-xl border border-slate-100">
+                            <div class="flex justify-between items-center">
+                                <label class="text-[10px] font-bold text-slate-700">Maximum Cap</label>
+                                <span class="text-xs font-mono font-bold text-slate-600 bg-slate-200 px-2 py-0.5 rounded" id="valCap">30</span>
+                            </div>
+                            <input type="range" id="paramCap" min="15" max="100" step="1" value="30">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 p-4 rounded-3xl shadow-lg space-y-3">
+                    <h3 class="text-[10px] uppercase tracking-widest font-black text-slate-400 mb-1">Threat Simulation</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="setMode('normal')" class="col-span-1 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-[10px] font-bold text-white transition-all">Normal</button>
+                        <button onclick="triggerJitter()" class="col-span-1 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-[10px] font-bold text-amber-400 transition-all">Inject Jitter</button>
+                        <button id="attackBtn" onclick="toggleAttack()" class="col-span-2 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-black transition-all shadow-[0_0_10px_rgba(220,38,38,0.4)]">INITIATE DDOS FLOOD</button>
+                    </div>
+                </div>
+                
+                <div class="text-center px-2 opacity-60 hover:opacity-100 transition-opacity mt-1">
+                    <p class="text-[9px] text-slate-500 uppercase leading-relaxed font-bold tracking-wider">
+                        Memory Complexity: <span class="text-slate-800">O(1)</span> &nbsp;&bull;&nbsp; SRAM Used: <span class="text-slate-800">~12 Bytes</span>
+                        <br>
+                        <span class="text-blue-600/70 font-black tracking-widest mt-0.5 block">DEVELOPED BY HARANATH RAKSHIT</span>
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Core Mathematical Engine (TinyOL) ---
+        let mu = 0.35;         
+        let sigma = 0.1;       
+        let sScore = 0.0;      
+        
+        let alpha = 0.10; 
+        let k = 0.5; 
+        let h = 15.0; 
+        let maxCap = 30.0;
+        
+        let mode = 'normal'; 
+        let jitterTicks = 0;
+        const tickRateMs = 150; 
+        const historyLength = 60; 
+
+        const updateVal = (id, val) => document.getElementById(id).innerText = val;
+        
+        document.getElementById('paramAlpha').oninput = e => { alpha = parseFloat(e.target.value); updateVal('valAlpha', alpha.toFixed(2)); };
+        document.getElementById('paramK').oninput = e => { k = parseFloat(e.target.value); updateVal('valK', k.toFixed(1)); };
+        document.getElementById('paramH').oninput = e => { 
+            h = parseFloat(e.target.value); 
+            if (h > maxCap) { maxCap = h; document.getElementById('paramCap').value = maxCap; updateVal('valCap', maxCap.toFixed(0)); updateVal('valCapPill', `Cap: ${maxCap.toFixed(1)}`); }
+            updateVal('valH', h.toFixed(0)); 
+            updateVal('valThresholdPill', `Threshold: ${h.toFixed(1)}`);
+            dangerData.datasets[1].data = Array(historyLength).fill(h); 
+        };
+        document.getElementById('paramCap').oninput = e => {
+            maxCap = parseFloat(e.target.value);
+            if (maxCap < h) { maxCap = h; document.getElementById('paramCap').value = maxCap; } 
+            updateVal('valCap', maxCap.toFixed(0));
+            updateVal('valCapPill', `Cap: ${maxCap.toFixed(1)}`);
+            chartD.options.scales.y.max = maxCap + 2; 
+        };
+
+        Chart.defaults.font.family = "'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+        const cfg = () => ({ 
+            responsive: true, maintainAspectRatio: false, animation: { duration: 0 }, 
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            elements: { point: { radius: 0 }, line: { borderWidth: 2 } },
+            layout: { padding: { left: -10, bottom: -10 } }
+        });
+
+        const latData = { 
+            labels: Array(historyLength).fill(''), 
+            datasets: [{ 
+                data: Array(historyLength).fill(0.35), 
+                borderColor: '#3b82f6', 
+                backgroundColor: 'rgba(59, 130, 246, 0.15)', 
+                fill: true, tension: 0.2
+            }]
+        };
+        
+        const dangerData = { 
+            labels: Array(historyLength).fill(''), 
+            datasets: [
+                { data: Array(historyLength).fill(0), borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.15)', fill: true, tension: 0.3 },
+                { data: Array(historyLength).fill(h), borderColor: '#8b5cf6', borderDash: [5, 5], borderWidth: 2, fill: false }
+            ]
+        };
+
+        const chartL = new Chart(document.getElementById('latencyChart'), { type: 'line', data: latData, options: { ...cfg(), scales: { x: { display: false }, y: { min: 0, max: 2.5, display: true, border: {display: false}, grid: {color: '#f1f5f9'} } } } });
+        const chartD = new Chart(document.getElementById('dangerChart'), { type: 'line', data: dangerData, options: { ...cfg(), scales: { x: { display: false }, y: { min: 0, max: maxCap + 2, display: true, border: {display: false}, grid: {color: '#f1f5f9'} } } } });
+
+        setInterval(() => {
+            let latency = 0.35 + (Math.random() * 0.1 - 0.05); 
+            if (mode === 'ddos') latency = 1.8 + Math.random() * 0.5; 
+            else if (jitterTicks > 0) { latency = 0.9 + Math.random() * 0.4; jitterTicks--; } 
+            
+            latency = Math.max(0.1, latency);
+            const z = (latency - mu) / (sigma + 1e-6);
+            sScore = Math.min(maxCap, Math.max(0, sScore + z - k));
+
+            let statusText, statusClass, indicatorText, indicatorClass, dotColor;
+
+            if (sScore >= h) {
+                statusText = "CRITICAL: NETWORK JAMMED";
+                statusClass = "text-sm font-black text-red-700 px-3 py-1 rounded-lg bg-red-100";
+                indicatorText = "CRITICAL"; indicatorClass = "text-lg font-black text-red-600";
+                dotColor = "bg-red-600";
+            } else {
+                sigma = (1 - alpha) * sigma + alpha * Math.abs(latency - mu);
+                mu = (1 - alpha) * mu + alpha * latency;
+                
+                if (sScore > h / 2) {
+                    statusText = "WARNING: HIGH JITTER";
+                    statusClass = "text-sm font-black text-amber-700 px-3 py-1 rounded-lg bg-amber-100";
+                    indicatorText = "WARNING"; indicatorClass = "text-lg font-black text-amber-500";
+                    dotColor = "bg-amber-500";
+                } else {
+                    statusText = "NORMAL OPERATIONS";
+                    statusClass = "text-sm font-black text-emerald-700 px-3 py-1 rounded-lg bg-emerald-50";
+                    indicatorText = "NORMAL"; indicatorClass = "text-lg font-black text-emerald-600";
+                    dotColor = "bg-emerald-500";
+                }
+            }
+
+            document.getElementById('systemStatusText').innerText = statusText;
+            document.getElementById('systemStatusText').className = statusClass;
+            document.getElementById('stateIndicator').innerText = indicatorText;
+            document.getElementById('stateIndicator').className = indicatorClass;
+            document.getElementById('liveDot').className = `w-2.5 h-2.5 rounded-full animate-pulse ${dotColor}`;
+
+            updateVal('valLatency', latency.toFixed(2) + " ms");
+            updateVal('valBaseline', mu.toFixed(2) + " ms");
+            updateVal('valDanger', sScore.toFixed(2));
+
+            latData.datasets[0].data.push(latency); latData.datasets[0].data.shift();
+            dangerData.datasets[0].data.push(sScore); dangerData.datasets[0].data.shift();
+            
+            chartL.update(); chartD.update();
+        }, tickRateMs);
+
+        function setMode(m) { 
+            mode = m; 
+            if(m==='normal') {
+                jitterTicks = 0; 
+                document.getElementById('attackBtn').innerText = "INITIATE DDOS FLOOD";
+                document.getElementById('attackBtn').className = "col-span-2 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-black transition-all shadow-[0_0_10px_rgba(220,38,38,0.4)]";
+            }
+        }
+        function triggerJitter() { jitterTicks = 15; }
+        function toggleAttack() { 
+            if (mode === 'ddos') {
+                setMode('normal');
+            } else {
+                mode = 'ddos'; 
+                document.getElementById('attackBtn').innerText = "HALT ATTACK (RESTORE NETWORK)"; 
+                document.getElementById('attackBtn').className = "col-span-2 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black transition-all shadow-[0_0_10px_rgba(16,185,129,0.4)]";
+            }
+        }
+    </script>
+</body>
+</html>
