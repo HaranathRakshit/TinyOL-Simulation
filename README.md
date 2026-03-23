@@ -21,4 +21,4 @@ This dashboard visualizes the mathematical core of the paper, demonstrating:
 * **Haranath Rakshit** - *Department of Computer and System Sciences, Visva-Bharati, India*
 * **Subhasis Banerjee** - *Department of Computer and System Sciences, Visva-Bharati, India*
 
-*Note: This framework is currently under review at Multimedia Tools and Applications (Springer).*
+
