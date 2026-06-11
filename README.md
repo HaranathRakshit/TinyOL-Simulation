@@ -1,4 +1,4 @@
-# TinyOL: Edge Anomaly Detection and Self-Healing Simulation
+# TinyOL: Closed-Loop Edge Intelligence for Real-Time Anomaly Detection and Self-Healing in Resource-Constrained IoT Networks
 
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.20641577-blue)](https://doi.org/10.5281/zenodo.20641577)
 [![GitHub Pages](https://img.shields.io/badge/Live_Demo-GitHub_Pages-brightgreen)](https://haranathrakshit.github.io/TinyOL-Simulation/)
@@ -184,7 +184,7 @@ If you use this simulator or the associated datasets, please cite the dataset:
 ```bibtex
 @misc{rakshit2026tinyol_dataset,
   author       = {Rakshit, Haranath and Banerjee, Subhasis},
-  title        = {TinyOL: Experimental Telemetry Dataset for Closed-Loop Edge Intelligence in WSN},
+  title        = {TinyOL: Closed-Loop Edge Intelligence for Real-Time Anomaly Detection and Self-Healing in Resource-Constrained IoT Networks},
   year         = {2026},
   publisher    = {Zenodo},
   doi          = {10.5281/zenodo.20641577},
@@ -194,7 +194,13 @@ If you use this simulator or the associated datasets, please cite the dataset:
 
 ---
 
-## Authors
+## Contact
 
-* **Haranath Rakshit** - *Department of Computer and System Sciences, Visva-Bharati University, India*
-* **Subhasis Banerjee** - *Department of Computer and System Sciences, Visva-Bharati University, India*
+For any questions regarding this Web-based Simulation, dataset, or the code, please contact:
+
+*   **Author:** Haranath Rakshit
+*   **E-Mail:**
+    *   [haranathrakshit.rs.css@visva-bharati.ac.in](mailto:haranathrakshit.rs.css@visva-bharati.ac.in)
+    *   [haranathrakshit@gmail.com](mailto:haranathrakshit@gmail.com)
+
+
