@@ -1,293 +1,1279 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TinyOL: Dashboard Simulation</title>
+    <title>TinyOL: Closed-Loop Edge Intelligence Simulator</title>
+    <meta name="description"
+        content="Interactive mathematical visualization of the TinyOL CUSUM-EWMA anomaly detection and MAPE-K self-healing logic for Wireless Sensor Networks.">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
     <style>
-        .pill { display: inline-block; padding: 2px 12px; border-radius: 50px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: bold; border: 1px solid; }
-        .pill-blue { color: #3b82f6; background-color: #eff6ff; border-color: #3b82f6; }
-        .pill-red { color: #ef4444; background-color: #fef2f2; border-color: #ef4444; }
-        .pill-purple { color: #8b5cf6; background-color: #f5f3ff; border-color: #8b5cf6; }
-        .status-normal { color: #166534; } .status-warning { color: #b45309; } .status-critical { color: #b91c1c; }
-        
-        input[type="range"] { -webkit-appearance: none; width: 100%; background: transparent; }
-        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 14px; width: 14px; border-radius: 50%; background: #64748b; cursor: pointer; margin-top: -5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #cbd5e1; border-radius: 10px; }
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #f8fafc, #eff6ff);
+        }
+
+        /* Desktop: fill viewport, main area scrolls if needed */
+        @media (min-width: 1024px) {
+            html, body {
+                height: 100%;
+                overflow: hidden;
+            }
+            body {
+                display: flex;
+                flex-direction: column;
+            }
+        }
+
+        .code-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 10px 30px -10px rgba(148, 163, 184, 0.15);
+        }
+
+        .glass-header {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .tab-btn {
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tab-btn.active {
+            color: #4f46e5;
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #4f46e5, #06b6d4);
+            border-radius: 9999px;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 10px;
+            border-radius: 9999px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        /* Custom sliders styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            background: #4f46e5;
+            cursor: pointer;
+            margin-top: -5px;
+            box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #e2e8f0;
+            border-radius: 9999px;
+        }
+
+        .scroll-custom::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        .scroll-custom::-webkit-scrollbar-track {
+            background: rgba(241, 245, 249, 0.5);
+        }
+
+        .scroll-custom::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        /* Reviewer banner animation */
+        .reviewer-banner {
+            background: linear-gradient(90deg, #1e293b, #334155);
+            transition: max-height 0.4s ease, opacity 0.3s ease, padding 0.4s ease;
+            max-height: 80px;
+            overflow: hidden;
+        }
+
+        .reviewer-banner.dismissed {
+            max-height: 0;
+            opacity: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+
+        /* Internal scroll container for packet log */
+        .log-scroll {
+            max-height: 95px;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 1023px) {
+            .log-scroll {
+                max-height: 200px;
+            }
+        }
+
+        /* Compact chart containers */
+        .chart-sm {
+            height: 120px;
+        }
+
+        .chart-md {
+            height: 140px;
+        }
+
+        @media (max-width: 1023px) {
+            .chart-sm {
+                height: 160px;
+            }
+
+            .chart-md {
+                height: 220px;
+            }
+        }
+
+        /* Mobile tab toggle */
+        @media (max-width: 640px) {
+            .header-tabs {
+                flex-direction: column;
+                gap: 2px;
+                border-bottom: none;
+            }
+            .header-tabs .tab-btn {
+                text-align: left;
+                border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+            }
+        }
+
+        /* Zenodo badge */
+        .zenodo-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 10px;
+            border-radius: 9999px;
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            color: white;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .zenodo-badge:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 min-h-screen p-3 md:p-4 font-sans flex items-center justify-center">
 
-    <div class="w-full max-w-[1300px] mx-auto space-y-4">
-        
-        <header class="flex flex-col xl:flex-row justify-between items-center bg-white border border-slate-200 p-3 rounded-2xl shadow-sm">
-            <div class="mb-3 xl:mb-0 text-center xl:text-left px-2">
-                <h1 class="text-xl font-black text-slate-950 tracking-tight">TinyOL Anomaly Detection</h1>
-                <p class="text-slate-500 text-[10px] font-semibold tracking-wide mt-1">INTERACTIVE ALGORITHM VISUALIZER &bull; MATHEMATICAL SIMULATION ONLY</p>
+<body class="text-slate-800 flex flex-col antialiased lg:h-screen">
+
+    <!-- Reviewer Note Banner (dismissible) -->
+    <div id="reviewerBanner" class="reviewer-banner text-white px-4 py-2 relative z-[60]">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3 text-[11px] leading-snug">
+                <span
+                    class="shrink-0 bg-blue-500/30 border border-blue-400/40 text-blue-200 text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded">Note
+                    for Reviewers</span>
+                <span class="text-slate-300">This dashboard is an interactive mathematical visualization of the TinyOL
+                    CUSUM-EWMA and MAPE-K logic for parameter exploration. All experimental results reported in the
+                    manuscript were captured using <strong class="text-white">physical ESP32 hardware</strong> and a
+                    real Wi-Fi router, streaming telemetry to a <strong class="text-white">Raspberry Pi 5 (16 GB)
+                    </strong> edge server running a Node.js Docker container on Ubuntu — not this web
+                    application.</span>
             </div>
-            
-            <a href="https://doi.org/10.5281/zenodo.19193941" target="_blank" rel="noopener noreferrer" 
-               class="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 hover:text-slate-900 transition-colors shadow-sm mb-3 xl:mb-0 xl:mx-4">
-                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path>
+            <button onclick="dismissBanner()" class="shrink-0 text-slate-400 hover:text-white transition-colors p-1"
+                aria-label="Dismiss banner">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
                 </svg>
-                📊 View Raw Hardware Dataset
-            </a>
-
-            <div class="w-full xl:w-auto bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl flex flex-wrap justify-center items-center gap-4 md:gap-6 text-center">
-                <div>
-                    <span class="text-slate-400 text-[9px] uppercase font-bold block mb-1">Latency (Lₜ)</span>
-                    <div class="text-lg font-mono font-bold text-slate-900" id="valLatency">0.35 ms</div>
-                </div>
-                <div class="border-l border-slate-200 pl-4 md:pl-6">
-                    <span class="text-slate-400 text-[9px] uppercase font-bold block mb-1">Baseline (μ)</span>
-                    <div class="text-lg font-mono font-bold text-slate-900" id="valBaseline">0.35 ms</div>
-                </div>
-                <div class="border-l border-slate-200 pl-4 md:pl-6">
-                    <span class="text-slate-400 text-[9px] uppercase font-bold block mb-1">Danger Score (Sₜ)</span>
-                    <div class="text-lg font-mono font-black text-slate-900" id="valDanger">0.00</div>
-                </div>
-                <div class="border-l border-slate-200 pl-4 md:pl-6">
-                    <span class="text-slate-400 text-[9px] uppercase font-bold block mb-1">System State</span>
-                    <div class="text-lg font-black" id="stateIndicator">NORMAL</div>
-                </div>
-            </div>
-        </header>
-
-        <div class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-xl text-xs flex items-center gap-3 shadow-sm">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-            </svg>
-            <p><strong>Note for Reviewers:</strong> This dashboard is an interactive mathematical visualization of the TinyOL CUSUM-EWMA logic. The actual datasets evaluated in the manuscript were captured using <strong>physical ESP32 hardware and a real Wi-Fi router</strong>, streaming telemetry to a localized <strong>Raspberry Pi 5 (16GB) edge server running a Node Docker container on Ubuntu</strong>, not this web application.</p>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            
-            <div class="lg:col-span-8 bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-col min-h-[420px]">
-                <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-3">
-                    <div class="flex items-center gap-2">
-                        <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" id="liveDot"></div>
-                        <span class="text-[10px] uppercase tracking-widest font-black text-slate-400">Live Traffic Stream</span>
-                    </div>
-                    <div class="text-right">
-                        <span id="systemStatusText" class="text-sm font-black status-normal px-3 py-1 rounded-lg bg-emerald-50">NORMAL OPERATIONS</span>
-                    </div>
-                </div>
-
-                <div class="space-y-6 flex-grow flex flex-col justify-center">
-                    <div class="h-[150px] relative w-full">
-                        <span class="pill pill-blue absolute z-10 top-0 left-0 bg-white shadow-sm">Raw Latency (ms)</span>
-                        <canvas id="latencyChart" class="mt-2"></canvas>
-                    </div>
-                    
-                    <div class="h-[150px] pt-4 relative w-full">
-                        <div class="absolute top-4 right-0 z-10 flex gap-2">
-                            <span class="pill pill-purple bg-white shadow-sm" id="valThresholdPill">Threshold: 15.0</span>
-                            <span class="pill border-slate-300 text-slate-500 bg-white shadow-sm" id="valCapPill">Cap: 30.0</span>
-                        </div>
-                        <span class="pill pill-red absolute z-10 top-4 left-0 bg-white shadow-sm">CUSUM Danger Score</span>
-                        <canvas id="dangerChart" class="mt-2"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <div class="lg:col-span-4 space-y-4 flex flex-col">
-                
-                <div class="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex-grow">
-                    <h3 class="text-[10px] uppercase tracking-widest font-black text-slate-400 mb-4 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                        Algorithm Tuning
-                    </h3>
-                    
-                    <div class="space-y-3">
-                        <div class="space-y-1 p-2 bg-slate-50 rounded-xl border border-slate-100">
-                            <div class="flex justify-between items-center">
-                                <label class="text-[10px] font-bold text-slate-700">Learning Rate (α)</label>
-                                <span class="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded" id="valAlpha">0.10</span>
-                            </div>
-                            <input type="range" id="paramAlpha" min="0.01" max="0.5" step="0.01" value="0.10">
-                        </div>
-
-                        <div class="space-y-1 p-2 bg-slate-50 rounded-xl border border-slate-100">
-                            <div class="flex justify-between items-center">
-                                <label class="text-[10px] font-bold text-slate-700">Tolerance Slack (k)</label>
-                                <span class="text-xs font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded" id="valK">0.5</span>
-                            </div>
-                            <input type="range" id="paramK" min="0" max="5" step="0.1" value="0.5">
-                        </div>
-
-                        <div class="space-y-1 p-2 bg-slate-50 rounded-xl border border-slate-100">
-                            <div class="flex justify-between items-center">
-                                <label class="text-[10px] font-bold text-slate-700">Alert Threshold (h)</label>
-                                <span class="text-xs font-mono font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded" id="valH">15</span>
-                            </div>
-                            <input type="range" id="paramH" min="5" max="50" step="1" value="15">
-                        </div>
-
-                        <div class="space-y-1 p-2 bg-slate-50 rounded-xl border border-slate-100">
-                            <div class="flex justify-between items-center">
-                                <label class="text-[10px] font-bold text-slate-700">Maximum Cap</label>
-                                <span class="text-xs font-mono font-bold text-slate-600 bg-slate-200 px-2 py-0.5 rounded" id="valCap">30</span>
-                            </div>
-                            <input type="range" id="paramCap" min="15" max="100" step="1" value="30">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-slate-900 p-4 rounded-3xl shadow-lg space-y-3">
-                    <h3 class="text-[10px] uppercase tracking-widest font-black text-slate-400 mb-1">Threat Simulation</h3>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="setMode('normal')" class="col-span-1 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-[10px] font-bold text-white transition-all">Normal</button>
-                        <button onclick="triggerJitter()" class="col-span-1 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-[10px] font-bold text-amber-400 transition-all">Inject Jitter</button>
-                        <button id="attackBtn" onclick="toggleAttack()" class="col-span-2 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-black transition-all shadow-[0_0_10px_rgba(220,38,38,0.4)]">INITIATE DDOS FLOOD</button>
-                    </div>
-                </div>
-                
-                <div class="text-center px-2 opacity-60 hover:opacity-100 transition-opacity mt-1">
-                    <p class="text-[9px] text-slate-500 uppercase leading-relaxed font-bold tracking-wider">
-                        Memory Complexity: <span class="text-slate-800">O(1)</span> &nbsp;&bull;&nbsp; SRAM Used: <span class="text-slate-800">~12 Bytes</span>
-                        <br>
-                        <span class="text-blue-600/70 font-black tracking-widest mt-0.5 block">DEVELOPED BY HARANATH RAKSHIT</span>
-                    </p>
-                </div>
-
-            </div>
+            </button>
         </div>
     </div>
 
+    <!-- Top Navigation Header -->
+    <header class="glass-header sticky top-0 z-50">
+        <div class="max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6">
+            <div class="flex items-center justify-between h-12">
+                <div class="flex items-center gap-2">
+                    <div class="p-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg">
+                        <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-sm font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+                            TinyOL Simulator <span
+                                class="text-[9px] font-medium bg-indigo-100 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded">Unified
+                                Dashboard</span>
+                        </h1>
+                        <p class="text-slate-500 text-[9px] uppercase font-semibold tracking-wider hidden sm:block">
+                            Closed-Loop Edge Intelligence for WSN Recovery</p>
+                    </div>
+                </div>
+
+                <div class="flex header-tabs space-x-1 border-b border-slate-200">
+                    <button id="btnTab1" onclick="switchTab(1)"
+                        class="tab-btn active px-3 py-1.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 focus:outline-none">
+                        1. Anomaly Detection (CUSUM-EWMA)
+                    </button>
+                    <button id="btnTab2" onclick="switchTab(2)"
+                        class="tab-btn px-3 py-1.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 focus:outline-none">
+                        2. Adaptive Self-Healing (MAPE-K)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-[1600px] w-full mx-auto px-3 sm:px-4 lg:px-6 py-2 lg:py-1 overflow-y-auto scroll-custom">
+
+        <!-- Tab 1: Anomaly Detection (CUSUM-EWMA) -->
+        <section id="tab1" class="space-y-2 lg:space-y-2">
+
+            <!-- Context Banner (compact) -->
+            <div class="bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2 flex gap-3 items-center shadow-sm">
+                <div class="p-1.5 bg-indigo-100 rounded-lg text-indigo-600 shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="text-[11px] leading-snug text-indigo-900/90">
+                    <strong>CUSUM-EWMA Detection Engine:</strong> Tracks raw latency L<sub>t</sub> against an online-adapted
+                    baseline (&mu;, &sigma;) to compute Danger Score S<sub>t</sub>. The
+                    <strong>anti-poisoning state machine</strong> freezes baseline learning during critical alarms.
+                </div>
+            </div>
+
+            <!-- Live Status Cards -->
+            <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="glass-card px-3 py-2 rounded-xl border-l-4 border-l-indigo-500">
+                    <span class="text-[8px] uppercase font-bold text-slate-400 block">Raw Latency (L_t)</span>
+                    <div id="valLatency" class="text-sm font-bold code-font text-slate-900">0.35 ms</div>
+                </div>
+                <div class="glass-card px-3 py-2 rounded-xl border-l-4 border-l-blue-500">
+                    <span class="text-[8px] uppercase font-bold text-slate-400 block">Baseline Average
+                        (&mu;)</span>
+                    <div id="valBaseline" class="text-sm font-bold code-font text-slate-900">0.35 ms</div>
+                </div>
+                <div class="glass-card px-3 py-2 rounded-xl border-l-4 border-l-purple-500">
+                    <span class="text-[8px] uppercase font-bold text-slate-400 block">Danger Score (S_t)</span>
+                    <div id="valDanger" class="text-sm font-extrabold code-font text-purple-600">0.00</div>
+                </div>
+            </div>
+
+            <!-- Dashboard Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+
+                <!-- Main Graphs (Left) -->
+                <div class="lg:col-span-8 glass-card p-3 rounded-2xl flex flex-col gap-2">
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-1.5">
+                        <div class="flex items-center gap-2">
+                            <span class="relative flex h-2.5 w-2.5">
+                                <span
+                                    class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"
+                                    id="detDot"></span>
+                            </span>
+                            <span class="text-[10px] uppercase font-extrabold text-slate-400 tracking-wider">Telemetry
+                                Stream</span>
+                        </div>
+                        <span id="detStateBadge"
+                            class="status-pill bg-emerald-50 text-emerald-700 border border-emerald-200">Normal
+                            Operations</span>
+                    </div>
+
+                    <!-- Charts container -->
+                    <div class="space-y-2 flex-grow">
+                        <div class="chart-sm relative">
+                            <span
+                                class="absolute top-0 left-1 text-[9px] uppercase font-bold text-slate-500 bg-white px-1.5 py-0.5 rounded border border-slate-200 z-10">Raw
+                                Latency (ms)</span>
+                            <canvas id="detLatencyChart"></canvas>
+                        </div>
+                        <div class="chart-sm relative">
+                            <span
+                                class="absolute top-0 left-1 text-[9px] uppercase font-bold text-slate-500 bg-white px-1.5 py-0.5 rounded border border-slate-200 z-10">Danger
+                                Score (S_t) vs. Threshold (h)</span>
+                            <canvas id="detDangerChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Control Panels (Right) -->
+                <div class="lg:col-span-4 flex flex-col gap-2">
+
+                    <!-- Parameter Tuning Slider Card -->
+                    <div class="glass-card p-3 rounded-2xl space-y-2">
+                        <h3
+                            class="text-[10px] uppercase font-extrabold text-indigo-600 tracking-widest flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4">
+                                </path>
+                            </svg>
+                            On-Device Tuning
+                        </h3>
+
+                        <div class="space-y-2 text-[11px]">
+                            <!-- Alpha -->
+                            <div class="p-2 bg-slate-50 rounded-xl border border-slate-200/60 space-y-1">
+                                <div class="flex justify-between items-center">
+                                    <span class="font-semibold text-slate-600 text-[10px]">Learning Rate (&alpha;)</span>
+                                    <span id="txtAlpha"
+                                        class="code-font text-indigo-600 font-bold bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 text-[10px]">0.05</span>
+                                </div>
+                                <input type="range" id="sliderAlpha" min="0.005" max="0.2" step="0.005" value="0.05">
+                            </div>
+
+                            <!-- k -->
+                            <div class="p-2 bg-slate-50 rounded-xl border border-slate-200/60 space-y-1">
+                                <div class="flex justify-between items-center">
+                                    <span class="font-semibold text-slate-600 text-[10px]">Tolerance Slack (k)</span>
+                                    <span id="txtK"
+                                        class="code-font text-indigo-600 font-bold bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 text-[10px]">2.0</span>
+                                </div>
+                                <input type="range" id="sliderK" min="0.5" max="4.0" step="0.1" value="2.0">
+                            </div>
+
+                            <!-- h -->
+                            <div class="p-2 bg-slate-50 rounded-xl border border-slate-200/60 space-y-1">
+                                <div class="flex justify-between items-center">
+                                    <span class="font-semibold text-slate-600 text-[10px]">Alert Threshold (h)</span>
+                                    <span id="txtH"
+                                        class="code-font text-purple-600 font-bold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 text-[10px]">15.0</span>
+                                </div>
+                                <input type="range" id="sliderH" min="5.0" max="40.0" step="0.5" value="15.0">
+                            </div>
+
+                            <!-- MaxCap -->
+                            <div class="p-2 bg-slate-50 rounded-xl border border-slate-200/60 space-y-1">
+                                <div class="flex justify-between items-center">
+                                    <span class="font-semibold text-slate-600 text-[10px]">Maximum Cap (MaxCap)</span>
+                                    <span id="txtCap"
+                                        class="code-font text-slate-700 font-bold bg-slate-200 px-1.5 py-0.5 rounded border border-slate-300 text-[10px]">80</span>
+                                </div>
+                                <input type="range" id="sliderCap" min="20" max="100" step="5" value="80">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Threat Injector -->
+                    <div class="glass-card p-3 rounded-2xl space-y-2">
+                        <h3 class="text-[10px] uppercase font-extrabold text-slate-600 tracking-widest">Network Attack
+                            Injector</h3>
+                        <div class="grid grid-cols-2 gap-1.5 text-[11px]">
+                            <button onclick="setDetMode('normal')"
+                                class="py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold transition-all border border-slate-200">Healthy
+                                Link</button>
+                            <button onclick="triggerDetJitter()"
+                                class="py-1.5 bg-slate-100 hover:bg-slate-200 text-amber-600 rounded-lg font-bold transition-all border border-slate-200">Inject
+                                Jitter</button>
+                            <button id="btnDetAttack" onclick="toggleDetAttack()"
+                                class="col-span-2 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-extrabold transition-all shadow-md shadow-rose-200">INITIATE
+                                DDOS FLOOD</button>
+                        </div>
+                    </div>
+
+                    <!-- Footnote Specs -->
+                    <div class="text-center opacity-60">
+                        <span class="text-[8px] code-font tracking-wide text-slate-500">
+                            RAM: 12 Bytes (O(1)) &bull; Code: ~1.5 KB &bull; Execution: &lt;1 &mu;s
+                        </span>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- Tab 2: Adaptive Self-Healing (MAPE-K) -->
+        <section id="tab2" class="hidden space-y-2 lg:space-y-2">
+
+            <!-- Context Banner (compact) -->
+            <div class="bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2 flex gap-3 items-center shadow-sm">
+                <div class="p-1.5 bg-emerald-100 rounded-lg text-emerald-600 shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <div class="text-[11px] leading-snug text-emerald-900/90">
+                    <strong>MAPE-K Self-Healing Simulator:</strong> Dual-feature root-cause diagnostics (RSSI &amp;
+                    latency) with severity-aware recovery factors (&alpha;<sub>i</sub>, &beta;<sub>j</sub>), compared against static
+                    benchmarks.
+                </div>
+            </div>
+
+            <!-- Scenario Selection + Controls (combined compact bar) -->
+            <div class="glass-card px-3 py-2 rounded-2xl space-y-2">
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                    <h3 class="text-[10px] uppercase font-extrabold text-slate-600 tracking-wider">Select Scenario</h3>
+                    <div class="flex items-center gap-1.5">
+                        <button id="btnHealPlay" onclick="toggleHealPlayback()"
+                            class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] rounded-lg shadow transition-all">🟢
+                            Start</button>
+                        <button id="btnHealStep" onclick="stepHeal()"
+                            class="px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 font-bold text-[10px] rounded-lg border border-slate-200 transition-all">Next
+                            Pkt</button>
+                        <button onclick="clearHealHistory()"
+                            class="px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 font-bold text-[10px] rounded-lg border border-slate-200 transition-all">Clear</button>
+                    </div>
+                </div>
+
+                <div class="flex flex-col lg:flex-row gap-2">
+                    <div class="space-y-0.5 flex-1">
+                        <span class="text-[8px] uppercase font-bold text-slate-400">Single:</span>
+                        <div class="grid grid-cols-3 md:grid-cols-5 gap-1 text-[10px]">
+                            <button id="btnScen_Baseline" onclick="setHealScenario('Baseline')"
+                                class="py-1 bg-white text-slate-600 rounded-md border border-slate-200 hover:bg-slate-50">Baseline</button>
+                            <button id="btnScen_Cong_Mild" onclick="setHealScenario('Congestion (Mild)')"
+                                class="py-1 bg-white text-slate-600 rounded-md border border-slate-200 hover:bg-slate-50">Cong:Mild</button>
+                            <button id="btnScen_Cong_Severe" onclick="setHealScenario('Congestion (Severe)')"
+                                class="py-1 bg-white text-slate-600 rounded-md border border-slate-200 hover:bg-slate-50">Cong:Severe</button>
+                            <button id="btnScen_Dist_Mild" onclick="setHealScenario('Distance (Mild)')"
+                                class="py-1 bg-white text-slate-600 rounded-md border border-slate-200 hover:bg-slate-50">Dist:Mild</button>
+                            <button id="btnScen_Dist_Severe" onclick="setHealScenario('Distance (Severe)')"
+                                class="py-1 bg-white text-slate-600 rounded-md border border-slate-200 hover:bg-slate-50">Dist:Severe</button>
+                        </div>
+                    </div>
+                    <div class="space-y-0.5 flex-1">
+                        <span class="text-[8px] uppercase font-bold text-slate-400">Combined:</span>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-1 text-[10px]">
+                            <button id="btnScen_Comb_MM" onclick="setHealScenario('Cong-Mild + Dist-Mild')"
+                                class="py-1 bg-white text-slate-600 rounded-md border border-slate-200 hover:bg-slate-50">C:M+D:M</button>
+                            <button id="btnScen_Comb_SM" onclick="setHealScenario('Cong-Severe + Dist-Mild')"
+                                class="py-1 bg-white text-slate-600 rounded-md border border-slate-200 hover:bg-slate-50">C:S+D:M</button>
+                            <button id="btnScen_Comb_MS" onclick="setHealScenario('Cong-Mild + Dist-Severe')"
+                                class="py-1 bg-white text-slate-600 rounded-md border border-slate-200 hover:bg-slate-50">C:M+D:S</button>
+                            <button id="btnScen_Comb_SS" onclick="setHealScenario('Cong-Severe + Dist-Severe')"
+                                class="py-1 bg-white text-slate-600 rounded-md border border-slate-200 hover:bg-slate-50">C:S+D:S</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Status Cards -->
+            <div class="grid grid-cols-3 md:grid-cols-6 gap-1.5 text-center">
+                <div class="glass-card px-2 py-1.5 rounded-xl">
+                    <span class="text-[8px] uppercase font-bold text-slate-400 block">RSSI</span>
+                    <div id="statRSSI" class="text-sm font-bold code-font text-slate-900">-45 dBm</div>
+                </div>
+                <div class="glass-card px-2 py-1.5 rounded-xl border-l-4 border-l-rose-400">
+                    <span class="text-[8px] uppercase font-bold text-slate-400 block">Raw Lat.</span>
+                    <div id="statRaw" class="text-sm font-bold code-font text-rose-500">180 ms</div>
+                </div>
+                <div class="glass-card px-2 py-1.5 rounded-xl border-l-4 border-l-amber-400">
+                    <span class="text-[8px] uppercase font-bold text-slate-400 block">Static</span>
+                    <div id="statStatic" class="text-sm font-bold code-font text-amber-500">180 ms</div>
+                    <span id="statStaticPct" class="text-[8px] text-slate-400">-0%</span>
+                </div>
+                <div class="glass-card px-2 py-1.5 rounded-xl border-l-4 border-l-emerald-400">
+                    <span class="text-[8px] uppercase font-bold text-slate-400 block">Proposed</span>
+                    <div id="statHeal" class="text-sm font-bold code-font text-emerald-600">180 ms</div>
+                    <span id="statHealPct" class="text-[8px] text-emerald-500 font-bold">-0%</span>
+                </div>
+                <div class="glass-card px-2 py-1.5 rounded-xl">
+                    <span class="text-[8px] uppercase font-bold text-slate-400 block">State</span>
+                    <div id="statState" class="text-[10px] font-bold text-slate-800 uppercase mt-0.5">Baseline</div>
+                </div>
+                <div class="glass-card px-2 py-1.5 rounded-xl">
+                    <span class="text-[8px] uppercase font-bold text-slate-400 block">Action</span>
+                    <div id="statAction"
+                        class="text-[9px] font-extrabold text-indigo-600 mt-0.5 uppercase leading-tight">Maintain</div>
+                </div>
+            </div>
+
+            <!-- Charts + Trace + Log + Metrics: unified 3-col panel -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-2">
+                <!-- Charts Panel (Left) -->
+                <div class="lg:col-span-5 glass-card p-2.5 rounded-2xl space-y-1.5">
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-1">
+                        <span class="text-[9px] uppercase font-extrabold text-slate-400">Self-Healing Charts</span>
+                        <div class="flex items-center gap-2 text-[8px] font-bold">
+                            <span class="flex items-center gap-1"><span
+                                    class="w-2 h-0.5 bg-rose-400 inline-block"></span> Raw</span>
+                            <span class="flex items-center gap-1"><span
+                                    class="w-2 h-0.5 bg-amber-400 inline-block"></span> Static</span>
+                            <span class="flex items-center gap-1"><span
+                                    class="w-2 h-0.5 bg-emerald-400 inline-block"></span> Proposed</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-12 gap-1.5">
+                        <div class="col-span-8 chart-md relative">
+                            <canvas id="healLineChart"></canvas>
+                        </div>
+                        <div class="col-span-4 chart-md relative">
+                            <canvas id="healBarChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trace Log (Center) -->
+                <div class="lg:col-span-3 glass-card p-2.5 rounded-2xl flex flex-col">
+                    <h3 class="text-[9px] uppercase font-extrabold text-slate-400 tracking-wider mb-1">Algorithm
+                        Trace</h3>
+                    <div id="traceCard"
+                        class="p-2 rounded-xl text-[9px] leading-relaxed bg-slate-50 border border-slate-200 text-slate-600 flex-grow overflow-y-auto scroll-custom" style="max-height:120px;">
+                        Select a scenario and click <strong>Next Pkt</strong> or <strong>Start</strong> to
+                        observe the trace.
+                    </div>
+                    <div class="mt-1 pt-1 border-t border-slate-100 text-[8px] code-font text-slate-400">
+                        &gamma;_R = -65 dBm | &gamma;_L = 350 ms
+                    </div>
+                </div>
+
+                <!-- Session Metrics (Right) -->
+                <div class="lg:col-span-4 glass-card p-2.5 rounded-2xl space-y-1.5">
+                    <h3 class="text-[9px] uppercase font-extrabold text-slate-400 tracking-wider">Session Metrics</h3>
+                    <div class="grid grid-cols-2 gap-1.5 text-center text-[9px]">
+                        <div class="bg-slate-50 border border-slate-200 px-2 py-1.5 rounded-lg">
+                            <span class="text-[7px] text-slate-400 block">Avg Raw</span>
+                            <span id="metricRaw" class="text-xs font-bold code-font text-slate-800">-</span>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 px-2 py-1.5 rounded-lg">
+                            <span class="text-[7px] text-slate-400 block">Avg Healed</span>
+                            <span id="metricHeal" class="text-xs font-bold code-font text-slate-800">-</span>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg col-span-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-[7px] text-slate-400">Latency Reduction</span>
+                                <span id="metricRed"
+                                    class="text-xs font-extrabold text-emerald-600 code-font">-</span>
+                            </div>
+                            <div class="w-full bg-slate-200 rounded-full h-1 mt-0.5">
+                                <div id="metricRedBar" class="bg-emerald-500 h-1 rounded-full" style="width: 0%"></div>
+                            </div>
+                            <div class="flex justify-between text-[7px] text-slate-400 mt-0.5">
+                                <span>0%</span><span>Paper: 29.6%</span><span>100%</span>
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg col-span-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-[7px] text-slate-400">PDR</span>
+                                <span id="metricPDR"
+                                    class="text-xs font-extrabold text-indigo-600 code-font">-</span>
+                            </div>
+                            <div class="w-full bg-slate-200 rounded-full h-1 mt-0.5">
+                                <div id="metricPDRBar" class="bg-indigo-500 h-1 rounded-full" style="width: 0%"></div>
+                            </div>
+                            <div class="flex justify-between text-[7px] text-slate-400 mt-0.5">
+                                <span>0%</span><span>Target: 99.1%</span><span>100%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Packet Log (full width, compact) -->
+            <div class="glass-card p-2.5 rounded-2xl">
+                <h3 class="text-[9px] uppercase font-extrabold text-slate-400 tracking-wider mb-1">Packet Log (Last 10)</h3>
+                <div class="overflow-x-auto scroll-custom log-scroll">
+                    <table class="w-full text-left border-collapse text-[9px]">
+                        <thead class="sticky top-0 bg-white z-10">
+                            <tr class="border-b border-slate-200 text-slate-400 font-bold uppercase">
+                                <th class="py-0.5 pr-1">Pkt</th>
+                                <th class="py-0.5 pr-1">RSSI</th>
+                                <th class="py-0.5 pr-1">Raw</th>
+                                <th class="py-0.5 pr-1">Static</th>
+                                <th class="py-0.5 pr-1">Healed</th>
+                                <th class="py-0.5 pr-1">State</th>
+                                <th class="py-0.5 pr-1">Severity</th>
+                                <th class="py-0.5">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tblPacketsBody" class="divide-y divide-slate-100 text-slate-600">
+                            <tr>
+                                <td colspan="8" class="py-2 text-center text-slate-400">No logs yet. Start simulation.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="py-1.5 border-t border-slate-200 bg-white text-center text-[10px] text-slate-400 leading-relaxed px-3 shrink-0">
+        <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-center gap-2">
+            <p>
+                <strong>Haranath Rakshit</strong> &bull; <a
+                    href="mailto:haranathrakshit.rs.css@visva-bharati.ac.in"
+                    class="text-indigo-600 hover:text-indigo-500">haranathrakshit.rs.css@visva-bharati.ac.in</a>
+            </p>
+            <span class="hidden sm:inline text-slate-300">&bull;</span>
+            <p class="text-[8px] uppercase tracking-widest font-bold">
+                55,026 Real Telemetry Samples
+            </p>
+            <span class="hidden sm:inline text-slate-300">&bull;</span>
+            <a href="https://doi.org/10.5281/zenodo.20641577" target="_blank" rel="noopener noreferrer"
+                class="zenodo-badge">
+                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M11.584 2.376a.75.75 0 01.832 0l9 6A.75.75 0 0121 9.75v4.5a.75.75 0 01-.416.67l-9 4.5a.75.75 0 01-.67 0l-9-4.5A.75.75 0 012 14.25v-4.5a.75.75 0 01.416-.67l9.168-6.704z"/>
+                </svg>
+                DOI: 10.5281/zenodo.20641577
+            </a>
+        </div>
+    </footer>
+
+    <!-- Core Simulators Script -->
     <script>
-        // --- Core Mathematical Engine (TinyOL) ---
-        let mu = 0.35;         
-        let sigma = 0.1;       
-        let sScore = 0.0;      
-        
-        let alpha = 0.10; 
-        let k = 0.5; 
-        let h = 15.0; 
-        let maxCap = 30.0;
-        
-        let mode = 'normal'; 
-        let jitterTicks = 0;
-        const tickRateMs = 150; 
-        const historyLength = 60; 
+        // ==========================================
+        // Banner Dismiss
+        // ==========================================
+        function dismissBanner() {
+            const banner = document.getElementById('reviewerBanner');
+            banner.classList.add('dismissed');
+            setTimeout(() => { banner.style.display = 'none'; }, 400);
+        }
 
-        const updateVal = (id, val) => document.getElementById(id).innerText = val;
-        
-        document.getElementById('paramAlpha').oninput = e => { alpha = parseFloat(e.target.value); updateVal('valAlpha', alpha.toFixed(2)); };
-        document.getElementById('paramK').oninput = e => { k = parseFloat(e.target.value); updateVal('valK', k.toFixed(1)); };
-        document.getElementById('paramH').oninput = e => { 
-            h = parseFloat(e.target.value); 
-            if (h > maxCap) { maxCap = h; document.getElementById('paramCap').value = maxCap; updateVal('valCap', maxCap.toFixed(0)); updateVal('valCapPill', `Cap: ${maxCap.toFixed(1)}`); }
-            updateVal('valH', h.toFixed(0)); 
-            updateVal('valThresholdPill', `Threshold: ${h.toFixed(1)}`);
-            dangerData.datasets[1].data = Array(historyLength).fill(h); 
-        };
-        document.getElementById('paramCap').oninput = e => {
-            maxCap = parseFloat(e.target.value);
-            if (maxCap < h) { maxCap = h; document.getElementById('paramCap').value = maxCap; } 
-            updateVal('valCap', maxCap.toFixed(0));
-            updateVal('valCapPill', `Cap: ${maxCap.toFixed(1)}`);
-            chartD.options.scales.y.max = maxCap + 2; 
-        };
+        // ==========================================
+        // Tab Management
+        // ==========================================
+        function switchTab(tabNum) {
+            const tab1 = document.getElementById('tab1');
+            const tab2 = document.getElementById('tab2');
+            const btn1 = document.getElementById('btnTab1');
+            const btn2 = document.getElementById('btnTab2');
 
-        Chart.defaults.font.family = "'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
-        const cfg = () => ({ 
-            responsive: true, maintainAspectRatio: false, animation: { duration: 0 }, 
+            if (tabNum === 1) {
+                tab1.classList.remove('hidden');
+                tab2.classList.add('hidden');
+                btn1.classList.add('active');
+                btn2.classList.remove('active');
+                // Resume detection loop
+                startDetLoop();
+                // Pause healing playback
+                pauseHealPlayback();
+            } else {
+                tab1.classList.add('hidden');
+                tab2.classList.remove('hidden');
+                btn1.classList.remove('active');
+                btn2.classList.add('active');
+                // Pause detection loop
+                pauseDetLoop();
+                // Redraw healing charts in case container dimensions changed
+                setTimeout(() => {
+                    chartHLine.resize();
+                    chartHBar.resize();
+                }, 50);
+            }
+        }
+
+        // ==========================================
+        // CHART CONFIG GENERATOR
+        // ==========================================
+        Chart.defaults.color = '#64748b';
+        Chart.defaults.borderColor = 'rgba(148, 163, 184, 0.15)';
+        const chartDefaults = () => ({
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 0 },
             plugins: { legend: { display: false }, tooltip: { enabled: false } },
-            elements: { point: { radius: 0 }, line: { borderWidth: 2 } },
-            layout: { padding: { left: -10, bottom: -10 } }
+            elements: { point: { radius: 0 }, line: { borderWidth: 2.2 } },
+            layout: { padding: { left: -5, right: 5, top: 10, bottom: -5 } }
         });
 
-        const latData = { 
-            labels: Array(historyLength).fill(''), 
-            datasets: [{ 
-                data: Array(historyLength).fill(0.35), 
-                borderColor: '#3b82f6', 
-                backgroundColor: 'rgba(59, 130, 246, 0.15)', 
-                fill: true, tension: 0.2
+        // =====================================================================
+        // TAB 1: ANOMALY DETECTION ENGINE (CUSUM-EWMA)
+        // =====================================================================
+        let detMu = 0.35;
+        let detSigma = 0.035; // baseline sigma: 10% of latency
+        let detDanger = 0.0;
+
+        let detAlpha = 0.05;
+        let detK = 2.0;
+        let detH = 15.0;
+        let detCap = 80.0;
+
+        let detMode = 'normal';
+        let detJitterTicks = 0;
+        let detIntervalId = null;
+        const detHistoryLen = 60;
+
+        // Sliders oninput hookups
+        const valBind = (sliderId, txtId, callback) => {
+            const slider = document.getElementById(sliderId);
+            const text = document.getElementById(txtId);
+            slider.oninput = (e) => {
+                const val = parseFloat(e.target.value);
+                text.innerText = val.toFixed(sliderId === 'sliderCap' ? 0 : 2);
+                callback(val);
+            };
+        };
+
+        valBind('sliderAlpha', 'txtAlpha', (v) => { detAlpha = v; });
+        valBind('sliderK', 'txtK', (v) => { detK = v; });
+        valBind('sliderH', 'txtH', (v) => {
+            detH = v;
+            detDangerData.datasets[1].data = Array(detHistoryLen).fill(detH);
+            if (detH > detCap) {
+                detCap = detH;
+                document.getElementById('sliderCap').value = detCap;
+                document.getElementById('txtCap').innerText = detCap.toFixed(0);
+                chartDetDanger.options.scales.y.max = detCap + 5;
+            }
+        });
+        valBind('sliderCap', 'txtCap', (v) => {
+            detCap = v;
+            if (detCap < detH) {
+                detCap = detH;
+                document.getElementById('sliderCap').value = detCap;
+                document.getElementById('txtCap').innerText = detCap.toFixed(0);
+            }
+            chartDetDanger.options.scales.y.max = detCap + 5;
+        });
+
+        const detLatData = {
+            labels: Array(detHistoryLen).fill(''),
+            datasets: [{
+                data: Array(detHistoryLen).fill(0.35),
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                fill: true,
+                tension: 0.15
             }]
         };
-        
-        const dangerData = { 
-            labels: Array(historyLength).fill(''), 
+
+        const detDangerData = {
+            labels: Array(detHistoryLen).fill(''),
             datasets: [
-                { data: Array(historyLength).fill(0), borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.15)', fill: true, tension: 0.3 },
-                { data: Array(historyLength).fill(h), borderColor: '#8b5cf6', borderDash: [5, 5], borderWidth: 2, fill: false }
+                { data: Array(detHistoryLen).fill(0), borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.05)', fill: true, tension: 0.2 },
+                { data: Array(detHistoryLen).fill(detH), borderColor: '#8b5cf6', borderDash: [4, 4], borderWidth: 1.5, fill: false }
             ]
         };
 
-        const chartL = new Chart(document.getElementById('latencyChart'), { type: 'line', data: latData, options: { ...cfg(), scales: { x: { display: false }, y: { min: 0, max: 2.5, display: true, border: {display: false}, grid: {color: '#f1f5f9'} } } } });
-        const chartD = new Chart(document.getElementById('dangerChart'), { type: 'line', data: dangerData, options: { ...cfg(), scales: { x: { display: false }, y: { min: 0, max: maxCap + 2, display: true, border: {display: false}, grid: {color: '#f1f5f9'} } } } });
-
-        setInterval(() => {
-            let latency = 0.35 + (Math.random() * 0.1 - 0.05); 
-            if (mode === 'ddos') latency = 1.8 + Math.random() * 0.5; 
-            else if (jitterTicks > 0) { latency = 0.9 + Math.random() * 0.4; jitterTicks--; } 
-            
-            latency = Math.max(0.1, latency);
-            const z = (latency - mu) / (sigma + 1e-6);
-            sScore = Math.min(maxCap, Math.max(0, sScore + z - k));
-
-            let statusText, statusClass, indicatorText, indicatorClass, dotColor;
-
-            if (sScore >= h) {
-                statusText = "CRITICAL: NETWORK JAMMED";
-                statusClass = "text-sm font-black text-red-700 px-3 py-1 rounded-lg bg-red-100";
-                indicatorText = "CRITICAL"; indicatorClass = "text-lg font-black text-red-600";
-                dotColor = "bg-red-600";
-            } else {
-                sigma = (1 - alpha) * sigma + alpha * Math.abs(latency - mu);
-                mu = (1 - alpha) * mu + alpha * latency;
-                
-                if (sScore > h / 2) {
-                    statusText = "WARNING: HIGH JITTER";
-                    statusClass = "text-sm font-black text-amber-700 px-3 py-1 rounded-lg bg-amber-100";
-                    indicatorText = "WARNING"; indicatorClass = "text-lg font-black text-amber-500";
-                    dotColor = "bg-amber-500";
-                } else {
-                    statusText = "NORMAL OPERATIONS";
-                    statusClass = "text-sm font-black text-emerald-700 px-3 py-1 rounded-lg bg-emerald-50";
-                    indicatorText = "NORMAL"; indicatorClass = "text-lg font-black text-emerald-600";
-                    dotColor = "bg-emerald-500";
+        const chartDetLat = new Chart(document.getElementById('detLatencyChart'), {
+            type: 'line',
+            data: detLatData,
+            options: {
+                ...chartDefaults(),
+                scales: {
+                    x: { display: false },
+                    y: { min: 0, max: 2.0, grid: { color: 'rgba(148, 163, 184, 0.1)' } }
                 }
             }
+        });
 
-            document.getElementById('systemStatusText').innerText = statusText;
-            document.getElementById('systemStatusText').className = statusClass;
-            document.getElementById('stateIndicator').innerText = indicatorText;
-            document.getElementById('stateIndicator').className = indicatorClass;
-            document.getElementById('liveDot').className = `w-2.5 h-2.5 rounded-full animate-pulse ${dotColor}`;
-
-            updateVal('valLatency', latency.toFixed(2) + " ms");
-            updateVal('valBaseline', mu.toFixed(2) + " ms");
-            updateVal('valDanger', sScore.toFixed(2));
-
-            latData.datasets[0].data.push(latency); latData.datasets[0].data.shift();
-            dangerData.datasets[0].data.push(sScore); dangerData.datasets[0].data.shift();
-            
-            chartL.update(); chartD.update();
-        }, tickRateMs);
-
-        function setMode(m) { 
-            mode = m; 
-            if(m==='normal') {
-                jitterTicks = 0; 
-                document.getElementById('attackBtn').innerText = "INITIATE DDOS FLOOD";
-                document.getElementById('attackBtn').className = "col-span-2 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-black transition-all shadow-[0_0_10px_rgba(220,38,38,0.4)]";
+        const chartDetDanger = new Chart(document.getElementById('detDangerChart'), {
+            type: 'line',
+            data: detDangerData,
+            options: {
+                ...chartDefaults(),
+                scales: {
+                    x: { display: false },
+                    y: { min: 0, max: detCap + 5, grid: { color: 'rgba(148, 163, 184, 0.1)' } }
+                }
             }
-        }
-        function triggerJitter() { jitterTicks = 15; }
-        function toggleAttack() { 
-            if (mode === 'ddos') {
-                setMode('normal');
+        });
+
+        function runDetTick() {
+            // Generate standard latency (approx 0.35 ms base + standard noise)
+            let lat = 0.35 + (Math.random() * 0.08 - 0.04);
+            if (detMode === 'ddos') {
+                // Volumetric saturation pushes latency to the physical MAC queue capacity (1.2 ms - 2.5 ms)
+                lat = 1.3 + Math.random() * 0.9;
+            } else if (detJitterTicks > 0) {
+                // High transient microsecond jitter
+                lat = 0.85 + Math.random() * 0.35;
+                detJitterTicks--;
+            }
+
+            lat = Math.max(0.1, lat);
+
+            // Standardize: Z_t = (L_t - mu_t-1) / sigma_t-1
+            const z = (lat - detMu) / (detSigma + 0.000001);
+
+            // Accumulate Danger Score: S_t = min(MaxCap, max(0, S_t-1 + Z_t - k))
+            detDanger = Math.min(detCap, Math.max(0.0, detDanger + z - detK));
+
+            let badgeText = "Normal Operations";
+            let badgeClass = "bg-emerald-50 text-emerald-700 border border-emerald-200";
+            let dotColor = "bg-emerald-500";
+            let stateWarningThreshold = detH / 3.0; // halved learning at warn state
+
+            if (detDanger >= detH) {
+                // Critical state: FREEZE learning
+                badgeText = "Critical: Network Congested";
+                badgeClass = "bg-rose-50 text-rose-700 border border-rose-200";
+                dotColor = "bg-rose-500";
             } else {
-                mode = 'ddos'; 
-                document.getElementById('attackBtn').innerText = "HALT ATTACK (RESTORE NETWORK)"; 
-                document.getElementById('attackBtn').className = "col-span-2 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black transition-all shadow-[0_0_10px_rgba(16,185,129,0.4)]";
+                // Learn baseline parameters when not in critical congestion state
+                let effAlpha = detAlpha;
+                if (detDanger > stateWarningThreshold) {
+                    // Warning state: HALVED learning rate
+                    badgeText = "Warning: Link Degrading";
+                    badgeClass = "bg-amber-50 text-amber-700 border border-amber-200";
+                    dotColor = "bg-amber-500";
+                    effAlpha = detAlpha / 2.0;
+                }
+
+                detMu = (1.0 - effAlpha) * detMu + effAlpha * lat;
+                detSigma = (1.0 - effAlpha) * detSigma + effAlpha * Math.abs(lat - detMu);
+            }
+
+            // Update DOM metrics
+            document.getElementById('detStateBadge').innerText = badgeText;
+            document.getElementById('detStateBadge').className = `status-pill ${badgeClass}`;
+            document.getElementById('detDot').className = `relative inline-flex rounded-full h-2.5 w-2.5 ${dotColor}`;
+
+            document.getElementById('valLatency').innerText = lat.toFixed(2) + " ms";
+            document.getElementById('valBaseline').innerText = detMu.toFixed(2) + " ms";
+            document.getElementById('valDanger').innerText = detDanger.toFixed(2);
+
+            detLatData.datasets[0].data.push(lat);
+            detLatData.datasets[0].data.shift();
+            detDangerData.datasets[0].data.push(detDanger);
+            detDangerData.datasets[0].data.shift();
+
+            chartDetLat.update();
+            chartDetDanger.update();
+        }
+
+        function startDetLoop() {
+            if (!detIntervalId) {
+                detIntervalId = setInterval(runDetTick, 150);
             }
         }
+
+        function pauseDetLoop() {
+            if (detIntervalId) {
+                clearInterval(detIntervalId);
+                detIntervalId = null;
+            }
+        }
+
+        function setDetMode(m) {
+            detMode = m;
+            detJitterTicks = 0;
+            if (m === 'normal') {
+                const btn = document.getElementById('btnDetAttack');
+                btn.innerText = "INITIATE DDOS FLOOD";
+                btn.className = "col-span-2 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-extrabold transition-all shadow-md shadow-rose-200";
+            }
+        }
+
+        function triggerDetJitter() {
+            detJitterTicks = 20;
+        }
+
+        function toggleDetAttack() {
+            const btn = document.getElementById('btnDetAttack');
+            if (detMode === 'ddos') {
+                setDetMode('normal');
+            } else {
+                detMode = 'ddos';
+                btn.innerText = "HALT ATTACK (RESTORE LINK)";
+                btn.className = "col-span-2 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-extrabold transition-all shadow-md shadow-emerald-200";
+            }
+        }
+
+        // =====================================================================
+        // TAB 2: ADAPTIVE SELF-HEALING RECOVERY (MAPE-K)
+        // =====================================================================
+        const RSSI_THRESHOLD = -65;
+        const LAT_THRESHOLD = 350;
+        const LAT_HIGH = 700;
+        const RSSI_LOW = -80;
+
+        // Calibrated recovery factors
+        const ALPHA1 = 0.60; // Backoff (Mild Congestion)
+        const ALPHA2 = 0.53; // Channel Switch (Severe Congestion)
+        const BETA1 = 0.70; // Power Boost (Mild Distance)
+        const BETA2 = 0.53; // Reconnect (Severe Distance)
+
+        let healScenario = 'Baseline';
+        let healPlaying = false;
+        let healIntervalId = null;
+        let healPktCount = 0;
+        let healHistory = [];
+
+        const SCENARIO_PARAMS = {
+            "Baseline": { rssi: [-55, -40], lat: [150, 340] },
+            "Congestion (Mild)": { rssi: [-58, -38], lat: [360, 650] },
+            "Congestion (Severe)": { rssi: [-60, -40], lat: [701, 950] },
+            "Distance (Mild)": { rssi: [-79, -66], lat: [180, 450] },
+            "Distance (Severe)": { rssi: [-97, -81], lat: [200, 500] },
+            "Cong-Mild + Dist-Mild": { rssi: [-79, -66], lat: [360, 650] },
+            "Cong-Severe + Dist-Mild": { rssi: [-79, -66], lat: [701, 950] },
+            "Cong-Mild + Dist-Severe": { rssi: [-97, -81], lat: [360, 650] },
+            "Cong-Severe + Dist-Severe": { rssi: [-97, -81], lat: [701, 950] }
+        };
+
+        const randomRange = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+        // Algorithms implementations
+        function inferHealState(rssi, lat) {
+            const dist = rssi <= RSSI_THRESHOLD;
+            const cong = lat > LAT_THRESHOLD;
+            if (dist && cong) return "Combined";
+            if (dist) return "Distance";
+            if (cong) return "Congestion";
+            return "Baseline";
+        }
+
+        function inferHealSeverity(state, rssi, lat) {
+            if (state === "Congestion") return lat > LAT_HIGH ? "Severe" : "Mild";
+            if (state === "Distance") return rssi <= RSSI_LOW ? "Severe" : "Mild";
+            if (state === "Combined") {
+                const cs = lat > LAT_HIGH ? "Severe" : "Mild";
+                const ds = rssi <= RSSI_LOW ? "Severe" : "Mild";
+                return `Cong:${cs} + Dist:${ds}`;
+            }
+            return "None";
+        }
+
+        function selectHealAction(state, sev) {
+            if (state === "Baseline") return "Maintain Current State";
+            if (state === "Congestion") return sev === "Severe" ? "Channel Switching" : "Backoff Transmission";
+            if (state === "Distance") return sev === "Severe" ? "Reconnection / Rerouting" : "Increase TX Power";
+            if (state === "Combined") {
+                const c_act = sev.includes("Cong:Severe") ? "Channel Switch" : "Backoff";
+                const d_act = sev.includes("Dist:Severe") ? "Reconnect" : "TX Power Boost";
+                return `${c_act} + ${d_act}`;
+            }
+            return "Maintain";
+        }
+
+        function applyHealRecovery(lat, state, sev) {
+            let factor = 1.0;
+            if (state === "Congestion") {
+                factor = sev === "Severe" ? ALPHA2 : ALPHA1;
+            } else if (state === "Distance") {
+                factor = sev === "Severe" ? BETA2 : BETA1;
+            } else if (state === "Combined") {
+                const c_factor = sev.includes("Cong:Severe") ? ALPHA2 : ALPHA1;
+                const d_factor = sev.includes("Dist:Severe") ? BETA2 : BETA1;
+                factor = c_factor * d_factor;
+            }
+            return Math.round(lat * factor);
+        }
+
+        function applyStaticRecovery(lat, state) {
+            if (state === "Congestion") return Math.round(lat * 0.70);
+            if (state === "Distance") return Math.round(lat * 0.80);
+            if (state === "Combined") return Math.round(lat * 0.70 * 0.80);
+            return lat;
+        }
+
+        // Charts configuration
+        const healHistoryLen = 20;
+        const healLineData = {
+            labels: Array(healHistoryLen).fill(''),
+            datasets: [
+                { label: 'Raw', data: Array(healHistoryLen).fill(220), borderColor: '#f87171', fill: false, tension: 0.15 },
+                { label: 'Static', data: Array(healHistoryLen).fill(220), borderColor: '#fbbf24', fill: false, tension: 0.15 },
+                { label: 'Adaptive', data: Array(healHistoryLen).fill(220), borderColor: '#34d399', fill: false, tension: 0.15 }
+            ]
+        };
+
+        const chartHLine = new Chart(document.getElementById('healLineChart'), {
+            type: 'line',
+            data: healLineData,
+            options: {
+                ...chartDefaults(),
+                scales: {
+                    x: { display: false },
+                    y: { min: 50, max: 1000, grid: { color: 'rgba(148, 163, 184, 0.1)' } }
+                }
+            }
+        });
+
+        const chartHBar = new Chart(document.getElementById('healBarChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Raw', 'Static', 'Adaptive'],
+                datasets: [{
+                    data: [220, 220, 220],
+                    backgroundColor: ['#f87171', '#fbbf24', '#34d399'],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { min: 0, max: 1000, grid: { color: 'rgba(148, 163, 184, 0.1)' } }
+                }
+            }
+        });
+
+        function stepHeal() {
+            healPktCount++;
+            const limits = SCENARIO_PARAMS[healScenario];
+            const rssi = randomRange(limits.rssi[0], limits.rssi[1]);
+            const rawLat = randomRange(limits.lat[0], limits.lat[1]);
+
+            const state = inferHealState(rssi, rawLat);
+            const sev = inferHealSeverity(state, rssi, rawLat);
+            const action = selectHealAction(state, sev);
+            const healedLat = applyHealRecovery(rawLat, state, sev);
+            const staticLat = applyStaticRecovery(rawLat, state);
+
+            const record = {
+                pkt: healPktCount,
+                rssi: rssi,
+                raw: rawLat,
+                static: staticLat,
+                healed: healedLat,
+                state: state,
+                sev: sev,
+                action: action
+            };
+
+            healHistory.push(record);
+            if (healHistory.length > 50) healHistory.shift();
+
+            updateHealUI(record);
+        }
+
+        function updateHealUI(cur) {
+            // Stats updates
+            document.getElementById('statRSSI').innerText = `${cur.rssi} dBm`;
+            document.getElementById('statRaw').innerText = `${cur.raw} ms`;
+            document.getElementById('statStatic').innerText = `${cur.static} ms`;
+            document.getElementById('statHeal').innerText = `${cur.healed} ms`;
+            document.getElementById('statState').innerText = cur.state;
+            document.getElementById('statAction').innerText = cur.action.split(' + ')[0];
+
+            const statRed = cur.raw > 0 ? Math.round((1 - cur.static / cur.raw) * 100) : 0;
+            const healRed = cur.raw > 0 ? Math.round((1 - cur.healed / cur.raw) * 100) : 0;
+            document.getElementById('statStaticPct').innerText = `-${statRed}%`;
+            document.getElementById('statHealPct').innerText = `-${healRed}%`;
+
+            // State-specific box border/color changes
+            const textState = document.getElementById('statState');
+            if (cur.state === 'Baseline') textState.className = 'text-[10px] font-bold text-emerald-600 uppercase mt-0.5';
+            else if (cur.state === 'Combined') textState.className = 'text-[10px] font-bold text-rose-600 uppercase mt-0.5';
+            else textState.className = 'text-[10px] font-bold text-amber-600 uppercase mt-0.5';
+
+            // Trace Card updates
+            const trace = document.getElementById('traceCard');
+            let expl = '';
+            if (cur.state === "Baseline") {
+                expl = `<strong>Baseline (Normal):</strong><br>
+                        - RSSI = ${cur.rssi} dBm (above -65).<br>
+                        - Latency = ${cur.raw} ms (below 350 ms).<br>
+                        - <strong>Decision:</strong> Healthy baseline. No recovery needed.`;
+            } else if (cur.state === "Congestion") {
+                const fval = cur.sev === "Severe" ? ALPHA2 : ALPHA1;
+                const factorName = cur.sev === "Severe" ? "&alpha;2" : "&alpha;1";
+                expl = `<strong>Congestion (${cur.sev}):</strong><br>
+                        - RSSI = ${cur.rssi} dBm (strong link).<br>
+                        - Latency = ${cur.raw} ms (${cur.sev === 'Severe' ? '>&gamma;_Lh (700ms)' : '350-700 ms'}).<br>
+                        - <strong>Action:</strong> ${cur.action}.<br>
+                        - <strong>Recovery:</strong> ${cur.raw} &times; ${factorName}(${fval}) = <strong>${cur.healed} ms</strong> (${healRed}% &darr;).`;
+            } else if (cur.state === "Distance") {
+                const fval = cur.sev === "Severe" ? BETA2 : BETA1;
+                const factorName = cur.sev === "Severe" ? "&beta;2" : "&beta;1";
+                expl = `<strong>Distance (${cur.sev}):</strong><br>
+                        - RSSI = ${cur.rssi} dBm (signal attenuated).<br>
+                        - Latency = ${cur.raw} ms.<br>
+                        - <strong>Action:</strong> ${cur.action}.<br>
+                        - <strong>Recovery:</strong> ${cur.raw} &times; ${factorName}(${fval}) = <strong>${cur.healed} ms</strong> (${healRed}% &darr;).`;
+            } else if (cur.state === "Combined") {
+                const c_factor = cur.sev.includes("Cong:Severe") ? ALPHA2 : ALPHA1;
+                const d_factor = cur.sev.includes("Dist:Severe") ? BETA2 : BETA1;
+                expl = `<strong>Combined Multi-Failure:</strong><br>
+                        - RSSI = ${cur.rssi} dBm + Latency = ${cur.raw} ms.<br>
+                        - Severity: ${cur.sev}.<br>
+                        - <strong>Dual Action:</strong> ${cur.action}.<br>
+                        - <strong>Recovery:</strong> ${cur.raw} &times; ${c_factor} &times; ${d_factor} = <strong>${cur.healed} ms</strong> (${healRed}% &darr;).`;
+            }
+            trace.innerHTML = expl;
+
+            // Updates Line chart
+            healLineData.datasets[0].data.push(cur.raw);
+            healLineData.datasets[0].data.shift();
+            healLineData.datasets[1].data.push(cur.static);
+            healLineData.datasets[1].data.shift();
+            healLineData.datasets[2].data.push(cur.healed);
+            healLineData.datasets[2].data.shift();
+            chartHLine.update();
+
+            // Updates Bar chart
+            chartHBar.data.datasets[0].data = [cur.raw, cur.static, cur.healed];
+            chartHBar.update();
+
+            // Updates Table log
+            const tbody = document.getElementById('tblPacketsBody');
+            let rowsHtml = '';
+            const slice = healHistory.slice(-10).reverse();
+            slice.forEach(r => {
+                let stClass = "text-slate-600";
+                if (r.state === 'Combined') stClass = "text-rose-600 font-bold";
+                else if (r.state !== 'Baseline') stClass = "text-amber-600 font-bold";
+
+                rowsHtml += `<tr class="border-b border-slate-100 hover:bg-slate-50/50">
+                    <td class="py-0.5 pr-1">${r.pkt}</td>
+                    <td class="py-0.5 pr-1">${r.rssi}</td>
+                    <td class="py-0.5 pr-1 font-semibold text-rose-500">${r.raw}</td>
+                    <td class="py-0.5 pr-1 text-amber-500">${r.static}</td>
+                    <td class="py-0.5 pr-1 font-bold text-emerald-600">${r.healed}</td>
+                    <td class="py-0.5 pr-1 ${stClass}">${r.state}</td>
+                    <td class="py-0.5 pr-1">${r.sev}</td>
+                    <td class="py-0.5 text-slate-500">${r.action.split(' + ')[0]}</td>
+                </tr>`;
+            });
+            tbody.innerHTML = rowsHtml;
+
+            // Update Session Statistics
+            if (healHistory.length >= 2) {
+                const avgRaw = healHistory.reduce((sum, r) => sum + r.raw, 0) / healHistory.length;
+                const avgHealed = healHistory.reduce((sum, r) => sum + r.healed, 0) / healHistory.length;
+                const totalRed = avgRaw > 0 ? ((1 - avgHealed / avgRaw) * 100) : 0;
+                const pdr = (healHistory.filter(r => r.healed < 1000).length / healHistory.length) * 100;
+
+                document.getElementById('metricRaw').innerText = `${avgRaw.toFixed(1)} ms`;
+                document.getElementById('metricHeal').innerText = `${avgHealed.toFixed(1)} ms`;
+                document.getElementById('metricRed').innerText = `${totalRed.toFixed(1)}%`;
+                document.getElementById('metricPDR').innerText = `${pdr.toFixed(1)}%`;
+
+                document.getElementById('metricRedBar').style.width = `${Math.min(100, totalRed)}%`;
+                document.getElementById('metricPDRBar').style.width = `${pdr}%`;
+            }
+        }
+
+        function setHealScenario(scen) {
+            healScenario = scen;
+            // Deactivate all scenario buttons and highlight active
+            const btns = document.querySelectorAll('[id^="btnScen_"]');
+            btns.forEach(b => {
+                b.className = "py-1 bg-white text-slate-600 rounded-md border border-slate-200 hover:bg-slate-50 transition-colors";
+            });
+            let targetId = '';
+            if (scen === 'Baseline') targetId = 'btnScen_Baseline';
+            else if (scen === 'Congestion (Mild)') targetId = 'btnScen_Cong_Mild';
+            else if (scen === 'Congestion (Severe)') targetId = 'btnScen_Cong_Severe';
+            else if (scen === 'Distance (Mild)') targetId = 'btnScen_Dist_Mild';
+            else if (scen === 'Distance (Severe)') targetId = 'btnScen_Dist_Severe';
+            else if (scen === 'Cong-Mild + Dist-Mild') targetId = 'btnScen_Comb_MM';
+            else if (scen === 'Cong-Severe + Dist-Mild') targetId = 'btnScen_Comb_SM';
+            else if (scen === 'Cong-Mild + Dist-Severe') targetId = 'btnScen_Comb_MS';
+            else if (scen === 'Cong-Severe + Dist-Severe') targetId = 'btnScen_Comb_SS';
+
+            if (targetId) {
+                document.getElementById(targetId).className = "py-1 bg-emerald-50 text-emerald-700 rounded-md border border-emerald-300 font-bold transition-all shadow-sm";
+            }
+        }
+
+        function toggleHealPlayback() {
+            const btn = document.getElementById('btnHealPlay');
+            if (healPlaying) {
+                pauseHealPlayback();
+            } else {
+                healPlaying = true;
+                btn.innerText = "⏸️ Pause";
+                btn.className = "px-3 py-1 bg-amber-500 hover:bg-amber-400 text-white font-bold text-[10px] rounded-lg shadow transition-all";
+                healIntervalId = setInterval(stepHeal, 1000);
+            }
+        }
+
+        function pauseHealPlayback() {
+            const btn = document.getElementById('btnHealPlay');
+            if (healPlaying) {
+                healPlaying = false;
+                btn.innerText = "🟢 Start";
+                btn.className = "px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] rounded-lg shadow transition-all";
+                clearInterval(healIntervalId);
+                healIntervalId = null;
+            }
+        }
+
+        function clearHealHistory() {
+            healHistory = [];
+            healPktCount = 0;
+            // Clear stats
+            document.getElementById('statRSSI').innerText = "-";
+            document.getElementById('statRaw').innerText = "-";
+            document.getElementById('statStatic').innerText = "-";
+            document.getElementById('statHeal').innerText = "-";
+            document.getElementById('statStaticPct').innerText = "-";
+            document.getElementById('statHealPct').innerText = "-";
+            document.getElementById('statState').innerText = "Baseline";
+            document.getElementById('statAction').innerText = "Maintain";
+            document.getElementById('traceCard').innerHTML = "Select a scenario and click <strong>Next Pkt</strong> or <strong>Start</strong> to observe the algorithm trace.";
+
+            document.getElementById('metricRaw').innerText = "-";
+            document.getElementById('metricHeal').innerText = "-";
+            document.getElementById('metricRed').innerText = "-";
+            document.getElementById('metricPDR').innerText = "-";
+            document.getElementById('metricRedBar').style.width = "0%";
+            document.getElementById('metricPDRBar').style.width = "0%";
+
+            document.getElementById('tblPacketsBody').innerHTML = `<tr>
+                <td colspan="8" class="py-3 text-center text-slate-400">No logs yet. Start simulation.</td>
+            </tr>`;
+
+            // Reset chart values
+            healLineData.datasets.forEach(d => {
+                d.data = Array(healHistoryLen).fill(220);
+            });
+            chartHLine.update();
+            chartHBar.data.datasets[0].data = [220, 220, 220];
+            chartHBar.update();
+        }
+
+        // Initialize defaults
+        setHealScenario('Baseline');
+        startDetLoop();
     </script>
 </body>
+
 </html>
